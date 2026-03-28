@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Flashcards</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0b1020;
+            color: white;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+
+            overflow: hidden;
+        }
+
+        /* APP */
+        .app {
+            width: 100%;
+            max-width: 800px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            gap: 22px;
+        }
+
+        /* TOP */
+        .top {
+            width: 90%;
+            text-align: center;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #1e293b;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #60a5fa;
+            width: 0%;
+        }
+
+        .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 16px;
+            color: #cbd5e1;
+        }
+
+        .top-buttons button {
+            background: #1e293b;
+            border: none;
+            color: #cbd5e1;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 5px;
+            font-size: 16px;
+        }
+
+        .top-buttons button:hover {
+            background: #334155;
+        }
+
+        /* CARD */
+        .card {
+            width: 90%;
+            max-width: 700px;
+            height: 320px;
+            perspective: 1200px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            transition: transform 0.5s;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateX(180deg);
+        }
+
+        .side {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+
+            padding: 30px;
+            box-sizing: border-box;
+
+            background: #2a3553;
+            backface-visibility: hidden;
+            font-size: 1.6em;
+        }
+
+        .back {
+            transform: rotateX(180deg);
+            background: #3b4666;
+        }
+
+        /* HARD */
+        .card.hard .side {
+            border: 3px solid #f87171;
+            box-shadow: 0 0 20px rgba(248, 113, 113, 0.4);
+        }
+
+        .hard-badge {
+            position: absolute;
+            top: 10px;
+            right: 16px;
+            font-size: 26px;
+            color: #f87171;
+            pointer-events: none;
+            display: none;
+        }
+
+        /* CONTROLS */
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .btn {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: #1e293b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 22px;
+        }
+
+        .btn:hover {
+            background: #334155;
+        }
+
+        .desc {
+            font-size: 0.7em;
+            line-height: 1.4;
+            color: #cbd5e1;
+            margin-top: 15px;
+        }
+
+        /* ================= MOBILE ================= */
+        @media (pointer: coarse) {
+
+            body {
+                height: auto;
+                min-height: 100vh;
+                padding: 2vh 0;
+            }
+
+            .app {
+                gap: 3vh;
+            }
+
+            .top-row {
+                font-size: 3.8vw;
+            }
+
+            .top-buttons button {
+                font-size: 3.8vw;
+                padding: 1.2vh 1.8vh;
+            }
+
+            .card {
+                height: 50vh;
+                width: 92%;
+            }
+
+            .side {
+                font-size: 5.5vw;
+                padding: 4vh;
+            }
+
+            .desc {
+                font-size: 0.65em;
+                line-height: 1.4;
+            }
+
+            .hard-badge {
+                font-size: 6vw;
+                top: 1.5vh;
+                right: 2vh;
+            }
+
+            .controls {
+                gap: 5vw;
+            }
+
+            .btn {
+                width: 9vh;
+                height: 9vh;
+                font-size: 4.5vh;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+
+        <div class="top">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <div class="top-row">
+                <div id="progressText">0 / 0</div>
+                <div class="top-buttons">
+                    <button onclick="shuffle()">🔀</button>
+                    <button onclick="toggleFilter()" id="filterBtn">🎯</button>
+                    <button onclick="toggleHard()" id="starBtn">⭐</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="card">
+            <div class="card-inner">
+                <div class="hard-badge" id="hardBadge">⭐</div>
+                <div class="side front" id="front"></div>
+                <div class="side back" id="back"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="btn" onclick="prev()">←</div>
+            <div class="btn" onclick="next()">→</div>
+        </div>
+
+    </div>
+
+    <script>
+
+        // ================= DATA =================
+        // ================= DATA =================
+        const data = [
+
+            /* ================= TAH / TLAK ================= */
+
+            {
+                id: 1,
+                front: "Hookův zákon (tah/tlak)",
+                formula: "\\( \\sigma = E \\varepsilon \\)",
+                desc: [
+                    "σ – napětí [MPa]",
+                    "ε – relativní prodloužení [–]",
+                    "E – Youngův modul pružnosti [MPa]"
+                ]
+            },
+            {
+                id: 2,
+                front: "Normálové napětí",
+                formula: "\\( \\sigma = \\frac{N}{S} \\)",
+                desc: [
+                    "σ – napětí [MPa]",
+                    "N – normálová síla [N]",
+                    "S – plocha průřezu [mm²]"
+                ]
+            },
+            {
+                id: 3,
+                front: "Posuv",
+                formula: "\\( u = \\sum \\frac{N_i L_i}{S_i E_i} \\)",
+                desc: [
+                    "u – posunutí [m]",
+                    "Nᵢ – normálová síla [N]",
+                    "Lᵢ – délka prutu [m]",
+                    "Sᵢ – průřez [mm²]",
+                    "Eᵢ – modul pružnosti [MPa]"
+                ]
+            },
+            {
+                id: 4,
+                front: "Castiglianova věta (tah/tlak)",
+                formula: "\\( u_j = \\sum \\frac{N_i L_i}{S_i E_i} \\cdot \\frac{\\partial N_i}{\\partial F_j} \\)",
+                desc: [
+                    "uⱼ – posunutí [m]",
+                    "Nᵢ – normálová síla [N]",
+                    "Lᵢ – délka [m]",
+                    "Sᵢ – průřez [mm²]",
+                    "Eᵢ – modul pružnosti [MPa]",
+                    "∂Nᵢ/∂Fⱼ – vliv zatížení"
+                ]
+            },
+            {
+                id: 5,
+                front: "Mezní stav pružnosti",
+                formula: "\\( k_k = \\frac{\\sigma_k}{\\sigma_{max}} \\)",
+                desc: [
+                    "kₖ – bezpečnostní součinitel [–]",
+                    "σₖ – mez kluzu [MPa]",
+                    "σ_max – maximální napětí [MPa]"
+                ]
+            },
+
+            /* ================= PRUŽINA ================= */
+
+            {
+                id: 6,
+                front: "Pružina – posunutí",
+                formula: "\\( u = \\frac{F_j}{k} \\)",
+                desc: [
+                    "u – posunutí [m]",
+                    "Fⱼ – síla [N]",
+                    "k – tuhost pružiny [N/m]"
+                ]
+            },
+            {
+                id: 7,
+                front: "Pružina – natočení",
+                formula: "\\( \\varphi = \\frac{M_j}{k} \\)",
+                desc: [
+                    "φ – natočení [rad]",
+                    "Mⱼ – krouticí moment [Nm]",
+                    "k – torzní tuhost [Nm/rad]"
+                ]
+            },
+
+            /* ================= KRUT ================= */
+
+            {
+                id: 8,
+                front: "Smykové napětí (krut)",
+                formula: "\\( \\tau = \\frac{M_k}{J_p} \\cdot r \\)",
+                desc: [
+                    "τ – smykové napětí [MPa]",
+                    "Mₖ – krouticí moment [Nm]",
+                    "Jₚ – polární moment setrvačnosti [mm⁴]",
+                    "r – vzdálenost od osy [mm]"
+                ]
+            },
+            {
+                id: 9,
+                front: "Maximální smykové napětí",
+                formula: "\\( \\tau_{max} = \\frac{M_k}{J_p} \\cdot r_{max} \\)",
+                desc: [
+                    "τ_max – maximální napětí [MPa]",
+                    "Mₖ – krouticí moment [Nm]",
+                    "Jₚ – polární moment [mm⁴]",
+                    "r_max – maximální vzdálenost [mm]"
+                ]
+            },
+            {
+                id: 10,
+                front: "Mez kluzu ve smyku",
+                formula: "\\( \\tau_k = \\frac{\\sigma_k}{2} \\)",
+                desc: [
+                    "τₖ – mez kluzu ve smyku [MPa]",
+                    "σₖ – mez kluzu v tahu [MPa]"
+                ]
+            },
+            {
+                id: 11,
+                front: "Mezní stav (krut)",
+                formula: "\\( k_k = \\frac{\\tau_k}{\\tau_{max}} \\)",
+                desc: [
+                    "kₖ – bezpečnost [–]",
+                    "τₖ – mez kluzu [MPa]",
+                    "τ_max – maximální napětí [MPa]"
+                ]
+            },
+
+            /* ================= MOMENTY ================= */
+
+            {
+                id: 12,
+                front: "Polární moment (kruh)",
+                formula: "\\( J_p = \\frac{\\pi D^4}{32} \\)",
+                desc: [
+                    "Jₚ – polární moment [mm⁴]",
+                    "D – průměr [mm]"
+                ]
+            },
+            {
+                id: 13,
+                front: "Polární moment (mezikruží)",
+                formula: "\\( J_p = \\frac{\\pi (D_2^4 - D_1^4)}{32} \\)",
+                desc: [
+                    "Jₚ – polární moment [mm⁴]",
+                    "D₂ – vnější průměr [mm]",
+                    "D₁ – vnitřní průměr [mm]"
+                ]
+            },
+
+            /* ================= DEFORMACE ================= */
+
+            {
+                id: 14,
+                front: "Úhel zkroucení",
+                formula: "\\( \\varphi = \\sum \\frac{M_{k_i} L_i}{G_i J_{p_i}} \\)",
+                desc: [
+                    "φ – úhel zkroucení [rad]",
+                    "Mₖ – krouticí moment [Nm]",
+                    "L – délka [m]",
+                    "G – modul pružnosti ve smyku [MPa]",
+                    "Jₚ – polární moment [mm⁴]"
+                ]
+            },
+            {
+                id: 15,
+                front: "Modul pružnosti ve smyku",
+                formula: "\\( G = \\frac{E}{2(1+\\nu)} \\)",
+                desc: [
+                    "G – smykový modul [MPa]",
+                    "E – Youngův modul [MPa]",
+                    "ν – Poissonovo číslo [–]"
+                ]
+            },
+
+            /* ================= CASTIGLIANO KRUT ================= */
+
+            {
+                id: 16,
+                front: "Castiglianova věta (krut)",
+                formula: "\\( \\varphi_j = \\sum \\frac{M_{k_i} L_i}{G_i J_{p_i}} \\cdot \\frac{\\partial M_{k_i}}{\\partial M_j} \\)",
+                desc: [
+                    "φⱼ – úhel zkroucení [rad]",
+                    "Mₖ – krouticí moment [Nm]",
+                    "L – délka [m]",
+                    "G – smykový modul [MPa]",
+                    "Jₚ – polární moment [mm⁴]",
+                    "∂Mₖ/∂Mⱼ – vliv momentu"
+                ]
+            }
+        ];
+
+        // ================= STATE =================
+        let order = data.map(c => c.id);
+        let hard = {};
+        let filtered = false;
+        let index = 0;
+        let isAnimating = false;
+
+        // ================= DOM =================
+        const card = document.getElementById("card");
+        const front = document.getElementById("front");
+        const back = document.getElementById("back");
+        const progressFill = document.getElementById("progressFill");
+        const progressText = document.getElementById("progressText");
+        const hardBadge = document.getElementById("hardBadge");
+
+        // ================= HELPERS =================
+        function getCard(id) {
+            return data.find(c => c.id === id);
+        }
+
+        // ================= RENDER =================
+        function render() {
+            if (order.length === 0) return;
+
+            const c = getCard(order[index]);
+
+            front.innerHTML = c.front;
+
+            back.innerHTML = `
+        <div>
+            <div>${c.formula}</div>
+            <div class="desc">
+                ${c.desc.map(d => `<div>${d}</div>`).join("")}
+            </div>
+        </div>
+    `;
+
+            progressText.innerText = `${index + 1} / ${order.length}`;
+            progressFill.style.width = ((index + 1) / order.length) * 100 + "%";
+
+            if (hard[c.id]) {
+                card.classList.add("hard");
+                hardBadge.style.display = "block";
+            } else {
+                card.classList.remove("hard");
+                hardBadge.style.display = "none";
+            }
+
+            if (window.MathJax) {
+                MathJax.typesetClear();
+                MathJax.typeset();
+            }
+        }
+
+        // ================= LOGIC =================
+        function flip() {
+            card.classList.toggle("flipped");
+        }
+
+        function change(newIndex) {
+            if (isAnimating) return;
+            isAnimating = true;
+
+            if (card.classList.contains("flipped")) {
+                const onEnd = () => {
+                    card.removeEventListener("transitionend", onEnd);
+                    index = newIndex;
+                    render();
+                    isAnimating = false;
+                };
+
+                card.addEventListener("transitionend", onEnd);
+                card.classList.remove("flipped");
+            } else {
+                index = newIndex;
+                render();
+                isAnimating = false;
+            }
+        }
+
+        function next() {
+            change((index + 1) % order.length);
+        }
+
+        function prev() {
+            change((index - 1 + order.length) % order.length);
+        }
+
+        function toggleHard() {
+            const id = order[index];
+            hard[id] = !hard[id];
+            render();
+        }
+
+        function shuffle() {
+            order.sort(() => Math.random() - 0.5);
+            index = 0;
+            render();
+        }
+
+        function toggleFilter() {
+            if (!filtered) {
+                order = data.filter(c => hard[c.id]).map(c => c.id);
+                filtered = true;
+            } else {
+                order = data.map(c => c.id);
+                filtered = false;
+            }
+            index = 0;
+            render();
+        }
+
+        // ================= INPUT =================
+        card.addEventListener("click", flip);
+
+        document.addEventListener("keydown", e => {
+            if (e.key === "ArrowRight") next();
+            if (e.key === "ArrowLeft") prev();
+            if (e.key === " ") {
+                e.preventDefault();
+                flip();
+            }
+        });
+
+        // ================= INIT =================
+        render();
+
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</body>
+
+</html>
